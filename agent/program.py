@@ -2,8 +2,8 @@
 # Project Part B: Game Playing Agent
 
 from referee.game import \
-    PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir
-
+    PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir, Board
+import random
 
 # This is the entry point for your game playing agent. Currently the agent
 # simply spawns a token at the centre of the board if playing as RED, and
@@ -11,7 +11,12 @@ from referee.game import \
 # intended to serve as an example of how to use the referee API -- obviously
 # this is not a valid strategy for actually playing the game!
 
+
+    
+currentBoard = Board()
+
 class Agent:
+
     def __init__(self, color: PlayerColor, **referee: dict):
         """
         Initialise the agent.
@@ -27,21 +32,36 @@ class Agent:
         """
         Return the next action to take.
         """
+        #self.availableActions(currentBoard._state[1])
+        
         match self._color:
             case PlayerColor.RED:
-                return SpawnAction(HexPos(3, 3))
+                return SpawnAction(HexPos(random.randint(1,6), 2))
             case PlayerColor.BLUE:
                 # This is going to be invalid... BLUE never spawned!
-                return SpreadAction(HexPos(3, 3), HexDir.Up)
+                # return SpreadAction(HexPos(3, 3), HexDir.Up)
+                return SpawnAction(HexPos(4, 3))
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
         Update the agent with the last player's action.
         """
+        global currentBoard
+        currentBoard.apply_action(action)
+        print("our board: \n")
+        #print(currentBoard.render(True, False))
+        print(currentBoard._state.items)
+        
         match action:
             case SpawnAction(cell):
+                
                 print(f"Testing: {color} SPAWN at {cell}")
                 pass
             case SpreadAction(cell, direction):
                 print(f"Testing: {color} SPREAD from {cell}, {direction}")
                 pass
+
+    def availableActions(boardState: dict[HexPos]):
+        for key in boardState.keys:
+            print(boardState[key])
+        return
