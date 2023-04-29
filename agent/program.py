@@ -50,8 +50,8 @@ class Agent:
         currentBoard.apply_action(action)
         print("our board: \n")
         #print(currentBoard.render(True, False))
-        print(currentBoard._state.items)
-        
+        availableActions(currentBoard._state)
+        #print(availableActions(currentBoard._state))
         match action:
             case SpawnAction(cell):
                 
@@ -61,7 +61,21 @@ class Agent:
                 print(f"Testing: {color} SPREAD from {cell}, {direction}")
                 pass
 
-    def availableActions(boardState: dict[HexPos]):
-        for key in boardState.keys:
-            print(boardState[key])
-        return
+def availableActions(boardState: dict[HexPos]):
+        availableSpawn = []
+        availableSpread = []
+        Direction = [HexDir.DownRight, HexDir.Down, HexDir.DownLeft, HexDir.UpLeft, HexDir.Up, HexDir.UpRight]
+        for i in range(7):
+            for j in range(7):
+                availableSpawn.append(SpawnAction(HexPos(i,j)))
+        for key in boardState.keys():
+            for d in Direction:
+                availableSpread.append(SpreadAction(key, d))
+            if SpawnAction(key) in availableSpawn:
+                availableSpawn.remove(SpawnAction(key)) 
+        
+        #print("Spawn:" )
+        #print(availableSpawn)
+        #print("Spread:")
+        #print(availableSpread)
+        return availableSpawn + availableSpread
