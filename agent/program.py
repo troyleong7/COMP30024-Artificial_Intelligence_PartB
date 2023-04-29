@@ -17,6 +17,7 @@ currentBoard = Board()
 
 class Agent:
 
+    global currentBoard
     def __init__(self, color: PlayerColor, **referee: dict):
         """
         Initialise the agent.
@@ -32,25 +33,26 @@ class Agent:
         """
         Return the next action to take.
         """
+
         #self.availableActions(currentBoard._state[1])
         
         match self._color:
             case PlayerColor.RED:
-                return SpawnAction(HexPos(random.randint(1,6), 2))
+                a = availableActions(PlayerColor.RED, currentBoard._state)
+                return random.choice(a)
             case PlayerColor.BLUE:
+                b = availableActions(PlayerColor.BLUE, currentBoard._state)
                 # This is going to be invalid... BLUE never spawned!
                 # return SpreadAction(HexPos(3, 3), HexDir.Up)
-                return SpawnAction(HexPos(4, 3))
+                return random.choice(b)
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
         Update the agent with the last player's action.
         """
-        global currentBoard
         currentBoard.apply_action(action)
-        print("our board: \n")
+        #print("our board: \n")
         #print(currentBoard.render(True, False))
-        availableActions(currentBoard._state)
         #print(availableActions(currentBoard._state))
         match action:
             case SpawnAction(cell):
@@ -61,16 +63,17 @@ class Agent:
                 print(f"Testing: {color} SPREAD from {cell}, {direction}")
                 pass
 
-def availableActions(boardState: dict[HexPos]):
+def availableActions(color: PlayerColor, boardState: dict[HexPos]):
         availableSpawn = []
         availableSpread = []
-        Direction = [HexDir.DownRight, HexDir.Down, HexDir.DownLeft, HexDir.UpLeft, HexDir.Up, HexDir.UpRight]
+        direction = [HexDir.DownRight, HexDir.Down, HexDir.DownLeft, HexDir.UpLeft, HexDir.Up, HexDir.UpRight]
         for i in range(7):
             for j in range(7):
                 availableSpawn.append(SpawnAction(HexPos(i,j)))
         for key in boardState.keys():
-            for d in Direction:
-                availableSpread.append(SpreadAction(key, d))
+            if boardState[key].player == color:
+                for d in direction:
+                    availableSpread.append(SpreadAction(key, d))
             if SpawnAction(key) in availableSpawn:
                 availableSpawn.remove(SpawnAction(key)) 
         
