@@ -3,7 +3,7 @@
 
 from referee.game import \
     PlayerColor, Action, SpawnAction, SpreadAction, HexPos, HexDir, Board
-import random
+import random, math, copy
 
 # This is the entry point for your game playing agent. Currently the agent
 # simply spawns a token at the centre of the board if playing as RED, and
@@ -11,13 +11,23 @@ import random
 # intended to serve as an example of how to use the referee API -- obviously
 # this is not a valid strategy for actually playing the game!
 
-
+currentBoard: dict[tuple, tuple]
+currentBoard = {}
+'''board = {
+        ...     (5, 6): (PlayerColor.RED, 2),
+        ...     (1, 0): (PlayerColor.BLUE, 2),
+        ... }
+'''
     
-currentBoard = Board()
+#currentBoard = Board()
+team_color = PlayerColor.RED
+enemy_color = PlayerColor.BLUE
+maxDepth = 3
 
 class Agent:
 
-    global currentBoard
+    global currentBoard, nextAction, maxDepth
+    
     def __init__(self, color: PlayerColor, **referee: dict):
         """
         Initialise the agent.
@@ -39,21 +49,23 @@ class Agent:
         
         match self._color:
             case PlayerColor.RED:
-                a = availableActions(PlayerColor.RED, currentBoard._state)
-                return random.choice(a)
+                #board_copy = currentBoard
+                miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
+                #print (availableActions(team_color, currentBoard)) # no problem here
+                return nextAction
             case PlayerColor.BLUE:
-                b = availableActions(PlayerColor.BLUE, currentBoard._state)
-                # This is going to be invalid... BLUE never spawned!
-                # return SpreadAction(HexPos(3, 3), HexDir.Up)
+                b = availableActions(PlayerColor.BLUE, currentBoard)
                 return random.choice(b)
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
         Update the agent with the last player's action.
         """
-        currentBoard.apply_action(action)
-        #print(currentBoard.render(True, False))
-        #print(availableActions(currentBoard._state))
+        #currentBoard.apply_action(action)
+        global currentBoard
+        currentBoard = apply_action(currentBoard, action, color)
+        print(currentBoard)
+        
         match action:
             case SpawnAction(cell):
                 
@@ -62,20 +74,68 @@ class Agent:
             case SpreadAction(cell, direction):
                 print(f"Testing: {color} SPREAD from {cell}, {direction}")
                 pass
+            
+nextAction: Action
+nextAction = SpawnAction(HexPos(0,0))
+def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
+    if(depth == 0 | isGameOver(board)):
+        return evaluation(board)
+    
+    global nextAction, maxDepth
+    
+    if(isMaxPlayer):
+        maxEval = -math.inf
+        for action in availableActions(team_color, board):
+            child_board = apply_action(board, action, team_color)
+            eval = miniMax(child_board, depth-1, alpha, beta, False)
+            #alpha = max(eval, maxEval)
+            if(eval > maxEval):
+                 # select action from depth = max - 1 (recursive so the last should be at that level)
+                if(depth == maxDepth):
+                    nextAction = action # need check, highly possible be logically incorrect
+                
+                alpha = eval
+                maxEval = eval
 
-def availableActions(color: PlayerColor, boardState: dict[HexPos]):
+            if(beta <= alpha):
+                break
+           
+        return maxEval
+    else:
+        minEval = math.inf
+        for action in availableActions(enemy_color, board):
+            child_board = apply_action(board, action, enemy_color)
+            eval = miniMax(child_board, depth-1, alpha, beta, False)
+            beta = min(eval, minEval)
+            if(eval < minEval):
+                nextAction = nextAction # to avoid none value warning
+                beta = eval
+                minEval = eval
+                
+            if(beta <= alpha):
+                break
+            
+        return minEval
+
+def availableActions(color: PlayerColor, board: dict):
     availableSpawn = []
     availableSpread = []
     direction = [HexDir.DownRight, HexDir.Down, HexDir.DownLeft, HexDir.UpLeft, HexDir.Up, HexDir.UpRight]
+    position = HexPos(0,0) #initialize
+    
+    # appending all position
     for i in range(7):
         for j in range(7):
             availableSpawn.append(SpawnAction(HexPos(i,j)))
-    for key in boardState.keys():
-        if boardState[key].player == color:
+    # appending available spreads
+    for key in board.keys():
+        if board[key][0] == color:
+            position = HexPos(key[0], key[1])
             for d in direction:
-                availableSpread.append(SpreadAction(key, d))
-        if SpawnAction(key) in availableSpawn:
-            availableSpawn.remove(SpawnAction(key)) 
+                availableSpread.append(SpreadAction(position, d))
+        # remove taken spots from spawn list
+        if SpawnAction(position) in availableSpawn:
+            availableSpawn.remove(SpawnAction(position)) 
     
     #print("Spawn:" )
     #print(availableSpawn)
@@ -83,9 +143,47 @@ def availableActions(color: PlayerColor, boardState: dict[HexPos]):
     #print(availableSpread)
     return availableSpawn + availableSpread
     
-def sumOfPlayerPower(color: PlayerColor, boardState: dict[HexPos]):
+def sumOfPlayerPower(color: PlayerColor, board):
     sum = 0
-    for key in boardState.keys():
-        if(color == boardState[key].player):
-            sum += boardState[key].power
+    for key in board.keys():
+        if(color == board[key][0]):
+            sum += board[key][1]
     return sum
+
+def isGameOver(board):
+    # need implementation
+    return False
+
+def evaluation(board: Board):
+    num = sumOfPlayerPower(team_color, board) - sumOfPlayerPower(enemy_color, board)
+    # need more function, spread priority > spawn etc..
+    
+    return num
+
+def apply_action(board, action, color: PlayerColor):
+    match action:
+        case SpawnAction():
+            return spawn(board, (action.cell.r, action.cell.q), color)
+        case SpreadAction():
+            return spread(board, (action.cell.r, action.cell.q), (action.direction.__getattribute__("r"), action.direction.__getattribute__("q")))
+
+def spread(originBoard, position, direction):
+    board = originBoard.copy()
+    #print(board.keys())
+    color = board[position][0]
+    rank = board[position][1]
+    #print(color)
+
+    for i in range(1,rank+1):
+        spreadX = (position[0]+i*direction[0]+7)%7 #plus an additional 7 to make negative positions positive so that -1 -> 6
+        spreadY = (position[1]+i*direction[1]+7)%7
+        board[(spreadX, spreadY)] = (color, (board.get((spreadX, spreadY),(0,0))[1] + 1))
+    del board[position]
+
+    return board
+
+def spawn(originBoard, position, color: PlayerColor):
+    board = originBoard.copy()
+    board[position] = (color, 1)
+    
+    return board
