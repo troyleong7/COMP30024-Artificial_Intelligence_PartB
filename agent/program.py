@@ -35,6 +35,7 @@ class Agent:
         """
 
         #self.availableActions(currentBoard._state[1])
+        #print(sumOfPlayerPower(PlayerColor.RED, currentBoard._state))
         
         match self._color:
             case PlayerColor.RED:
@@ -51,7 +52,6 @@ class Agent:
         Update the agent with the last player's action.
         """
         currentBoard.apply_action(action)
-        #print("our board: \n")
         #print(currentBoard.render(True, False))
         #print(availableActions(currentBoard._state))
         match action:
@@ -64,21 +64,28 @@ class Agent:
                 pass
 
 def availableActions(color: PlayerColor, boardState: dict[HexPos]):
-        availableSpawn = []
-        availableSpread = []
-        direction = [HexDir.DownRight, HexDir.Down, HexDir.DownLeft, HexDir.UpLeft, HexDir.Up, HexDir.UpRight]
-        for i in range(7):
-            for j in range(7):
-                availableSpawn.append(SpawnAction(HexPos(i,j)))
-        for key in boardState.keys():
-            if boardState[key].player == color:
-                for d in direction:
-                    availableSpread.append(SpreadAction(key, d))
-            if SpawnAction(key) in availableSpawn:
-                availableSpawn.remove(SpawnAction(key)) 
-        
-        #print("Spawn:" )
-        #print(availableSpawn)
-        #print("Spread:")
-        #print(availableSpread)
-        return availableSpawn + availableSpread
+    availableSpawn = []
+    availableSpread = []
+    direction = [HexDir.DownRight, HexDir.Down, HexDir.DownLeft, HexDir.UpLeft, HexDir.Up, HexDir.UpRight]
+    for i in range(7):
+        for j in range(7):
+            availableSpawn.append(SpawnAction(HexPos(i,j)))
+    for key in boardState.keys():
+        if boardState[key].player == color:
+            for d in direction:
+                availableSpread.append(SpreadAction(key, d))
+        if SpawnAction(key) in availableSpawn:
+            availableSpawn.remove(SpawnAction(key)) 
+    
+    #print("Spawn:" )
+    #print(availableSpawn)
+    #print("Spread:")
+    #print(availableSpread)
+    return availableSpawn + availableSpread
+    
+def sumOfPlayerPower(color: PlayerColor, boardState: dict[HexPos]):
+    sum = 0
+    for key in boardState.keys():
+        if(color == boardState[key].player):
+            sum += boardState[key].power
+    return sum
