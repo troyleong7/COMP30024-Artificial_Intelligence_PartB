@@ -43,13 +43,14 @@ class Agent:
         """
         Return the next action to take.
         """
-
+        global currentBoard
         #self.availableActions(currentBoard._state[1])
         #print(sumOfPlayerPower(PlayerColor.RED, currentBoard._state))
         
         match self._color:
             case PlayerColor.RED:
                 #board_copy = currentBoard
+                print("current board sent to minmax: ", currentBoard)
                 miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
                 #print (availableActions(team_color, currentBoard)) # no problem here
                 return nextAction
@@ -90,10 +91,11 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
             eval = miniMax(child_board, depth-1, alpha, beta, False)
             #alpha = max(eval, maxEval)
             if(eval > maxEval):
+                
                  # select action from depth = max - 1 (recursive so the last should be at that level)
                 if(depth == maxDepth):
                     nextAction = action # need check, highly possible be logically incorrect
-                
+                    print("depth is", depth," action of this node is", action, " maxEval is ", maxEval)
                 alpha = eval
                 maxEval = eval
 
@@ -105,10 +107,11 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
         minEval = math.inf
         for action in availableActions(enemy_color, board):
             child_board = apply_action(board, action, enemy_color)
-            eval = miniMax(child_board, depth-1, alpha, beta, False)
+            eval = miniMax(child_board, depth-1, alpha, beta, True)
             beta = min(eval, minEval)
             if(eval < minEval):
-                nextAction = nextAction # to avoid none value warning
+                #print("depth is", depth," action of this node is", action, " minEval is ", minEval)
+                #nextAction = nextAction # to avoid none value warning
                 beta = eval
                 minEval = eval
                 
@@ -129,8 +132,8 @@ def availableActions(color: PlayerColor, board: dict):
             availableSpawn.append(SpawnAction(HexPos(i,j)))
     # appending available spreads
     for key in board.keys():
+        position = HexPos(key[0], key[1])
         if board[key][0] == color:
-            position = HexPos(key[0], key[1])
             for d in direction:
                 availableSpread.append(SpreadAction(position, d))
         # remove taken spots from spawn list
