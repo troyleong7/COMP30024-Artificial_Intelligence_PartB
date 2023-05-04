@@ -23,6 +23,7 @@ currentBoard = {}
 team_color = PlayerColor.RED
 enemy_color = PlayerColor.BLUE
 maxDepth = 3
+turnCount = 0
 
 class Agent:
 
@@ -44,13 +45,11 @@ class Agent:
         Return the next action to take.
         """
         global currentBoard
-        #self.availableActions(currentBoard._state[1])
         #print(sumOfPlayerPower(PlayerColor.RED, currentBoard._state))
         
         match self._color:
             case PlayerColor.RED:
-                #board_copy = currentBoard
-                print("current board sent to minmax: ", currentBoard)
+                #print("current board sent to minmax: ", currentBoard)
                 miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
                 #print (availableActions(team_color, currentBoard)) # no problem here
                 return nextAction
@@ -62,10 +61,9 @@ class Agent:
         """
         Update the agent with the last player's action.
         """
-        #currentBoard.apply_action(action)
         global currentBoard
         currentBoard = apply_action(currentBoard, action, color)
-        print(currentBoard)
+        #print(currentBoard)
         
         match action:
             case SpawnAction(cell):
@@ -89,6 +87,9 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
         for action in availableActions(team_color, board):
             child_board = apply_action(board, action, team_color)
             eval = miniMax(child_board, depth-1, alpha, beta, False)
+            '''
+            if(depth == maxDepth): #using this to see if there's strange eval value, now has times where spawn has eval = 2
+                print("action ", action, "has eval = ", eval)'''
             #alpha = max(eval, maxEval)
             if(eval > maxEval):
                 
@@ -154,11 +155,20 @@ def sumOfPlayerPower(color: PlayerColor, board):
     return sum
 
 def isGameOver(board):
-    # need implementation
+    global turnCount
+    if turnCount< 2: 
+            return False
+
+    return any([
+        #turn_count >= 343, probably no need cuz referee ends game itself
+        sumOfPlayerPower(PlayerColor.RED, board) == 0,
+        sumOfPlayerPower(PlayerColor.BLUE, board) == 0,
+    ])
     return False
 
 def evaluation(board: Board):
     num = sumOfPlayerPower(team_color, board) - sumOfPlayerPower(enemy_color, board)
+
     # need more function, spread priority > spawn etc..
     
     return num
