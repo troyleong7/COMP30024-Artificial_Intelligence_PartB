@@ -23,11 +23,11 @@ currentBoard = {}
 team_color = PlayerColor.RED
 enemy_color = PlayerColor.BLUE
 maxDepth = 3
-turnCount = 0
+turnCount = 1
 
 class Agent:
 
-    global currentBoard, nextAction, maxDepth
+    global currentBoard, nextAction, maxDepth, turnCount
     
     def __init__(self, color: PlayerColor, **referee: dict):
         """
@@ -61,8 +61,9 @@ class Agent:
         """
         Update the agent with the last player's action.
         """
-        global currentBoard
+        global currentBoard, turnCount
         currentBoard = apply_action(currentBoard, action, color)
+        turnCount += 1
         #print(currentBoard)
         
         match action:
@@ -164,7 +165,6 @@ def isGameOver(board):
         sumOfPlayerPower(PlayerColor.RED, board) == 0,
         sumOfPlayerPower(PlayerColor.BLUE, board) == 0,
     ])
-    return False
 
 def evaluation(board: Board):
     num = sumOfPlayerPower(team_color, board) - sumOfPlayerPower(enemy_color, board)
