@@ -34,35 +34,36 @@ class Agent:
         """
         Initialise the agent.
         """
+        global team_color, enemy_color
         self._color = color
         match color:
             case PlayerColor.RED:
+                team_color = PlayerColor.RED
+                enemy_color = PlayerColor.BLUE
                 print("Testing: I am playing as red")
             case PlayerColor.BLUE:
+                team_color = PlayerColor.BLUE
+                enemy_color = PlayerColor.RED
                 print("Testing: I am playing as blue")
 
     def action(self, **referee: dict) -> Action:
         """
         Return the next action to take.
         """
-        global currentBoard, turnCount, team_color, enemy_color
-        
+        global currentBoard, turnCount
         #print(sumOfPlayerPower(PlayerColor.RED, currentBoard._state))
         
         match self._color:
             case PlayerColor.RED:
-                team_color = PlayerColor.RED
-                enemy_color = PlayerColor.BLUE
+                
                 turnCount += 1
-                #print("update turn count: ", turnCount)
+                print("update turn count: ", turnCount)
                 
                 miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
                 return nextAction
             case PlayerColor.BLUE:
-                team_color = PlayerColor.BLUE
-                enemy_color = PlayerColor.RED
                 turnCount += 1
-                #print("update turn count: ", turnCount)
+                print("update turn count: ", turnCount)
                 
                 miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
                 return nextAction
@@ -87,14 +88,15 @@ class Agent:
 nextAction: Action
 nextAction = SpawnAction(HexPos(0,0))
 def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
+    global nextAction, maxDepth, turnCount
+    
     if(depth == 0):
         return evaluation(board)
-    if(isGameOver(board)):
+    if(isGameOver(board, turnCount + maxDepth - depth)):
         if(isMaxPlayer):
             return -1000 #avoid game losing move
         return 1000 #always choose the game winning move
     
-    global nextAction, maxDepth
     
     if(isMaxPlayer):
         maxEval = -math.inf
@@ -102,9 +104,9 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
             child_board = apply_action(board, action, team_color)
             eval = miniMax(child_board, depth-1, alpha, beta, False)
             
-            if(depth == maxDepth): #using this to see if there's strange eval value, now has times where spawn has eval = 2
-                print("action ", action, "has eval = ", eval)
-            print(team_color)
+            '''if(depth == maxDepth or depth == maxDepth-1): #using this to see if there's strange eval value, now has times where spawn has eval = 2
+                print("depth = ",depth, "action ", action, "has eval = ", eval)'''
+            #print(team_color)
             #alpha = max(eval, maxEval)
             if(eval > maxEval):
                 
@@ -125,6 +127,10 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
             child_board = apply_action(board, action, enemy_color)
             eval = miniMax(child_board, depth-1, alpha, beta, True)
             beta = min(eval, minEval)
+            
+            '''if(depth == maxDepth-1): #using this to see if there's strange eval value, now has times where spawn has eval = 2
+                print("depth = ",depth, "action ", action, "has eval = ", eval)'''
+            
             if(eval < minEval):
                 #print("depth is", depth," action of this node is", action, " minEval is ", minEval)
                 #nextAction = nextAction # to avoid none value warning
@@ -172,10 +178,10 @@ def sumOfPlayer_and_Power(color: PlayerColor, board):
             player_sum += 1
     return [player_sum, power_sum]
 
-def isGameOver(board):
-    global turnCount
-    if turnCount < 2: 
+def isGameOver(board, modified_turnCount):
+    if modified_turnCount < 2: 
             return False
+    #doesnt check turn count, for efficiency reason
 
     return sumOfPlayer_and_Power(PlayerColor.RED, board)[0] == 0 or sumOfPlayer_and_Power(PlayerColor.BLUE, board)[0] == 0
     
