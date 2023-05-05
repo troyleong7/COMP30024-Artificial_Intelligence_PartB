@@ -20,11 +20,11 @@ currentBoard = {}
 '''
     
 #currentBoard = Board()
-team_color = PlayerColor.RED
-enemy_color = PlayerColor.BLUE
+team_color : PlayerColor
+enemy_color : PlayerColor
 maxDepth = 3
-RedTurnCount: int
-RedTurnCount = 0
+turnCount: int
+turnCount = 0
 
 class Agent:
 
@@ -45,20 +45,27 @@ class Agent:
         """
         Return the next action to take.
         """
-        global currentBoard, RedTurnCount
+        global currentBoard, turnCount, team_color, enemy_color
         
         #print(sumOfPlayerPower(PlayerColor.RED, currentBoard._state))
         
         match self._color:
             case PlayerColor.RED:
-                RedTurnCount += 1
-                #print("update turn count: ", RedTurnCount)
+                team_color = PlayerColor.RED
+                enemy_color = PlayerColor.BLUE
+                turnCount += 1
+                #print("update turn count: ", turnCount)
                 
                 miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
                 return nextAction
             case PlayerColor.BLUE:
-                b = availableActions(PlayerColor.BLUE, currentBoard)
-                return random.choice(b)
+                team_color = PlayerColor.BLUE
+                enemy_color = PlayerColor.RED
+                turnCount += 1
+                #print("update turn count: ", turnCount)
+                
+                miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
+                return nextAction
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
         """
@@ -95,8 +102,9 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
             child_board = apply_action(board, action, team_color)
             eval = miniMax(child_board, depth-1, alpha, beta, False)
             
-            '''if(depth == maxDepth): #using this to see if there's strange eval value, now has times where spawn has eval = 2
-                print("action ", action, "has eval = ", eval)'''
+            if(depth == maxDepth): #using this to see if there's strange eval value, now has times where spawn has eval = 2
+                print("action ", action, "has eval = ", eval)
+            print(team_color)
             #alpha = max(eval, maxEval)
             if(eval > maxEval):
                 
@@ -135,9 +143,10 @@ def availableActions(color: PlayerColor, board: dict):
     position = HexPos(0,0) #initialize
     
     # appending all position
-    for i in range(7):
-        for j in range(7):
-            availableSpawn.append(SpawnAction(HexPos(i,j)))
+    if (sumOfPlayer_and_Power(PlayerColor.RED, board)[0] + sumOfPlayer_and_Power(PlayerColor.BLUE, board)[0]) < 49:
+        for i in range(7):
+            for j in range(7):
+                availableSpawn.append(SpawnAction(HexPos(i,j)))
     # appending available spreads
     for key in board.keys():
         position = HexPos(key[0], key[1])
@@ -164,8 +173,8 @@ def sumOfPlayer_and_Power(color: PlayerColor, board):
     return [player_sum, power_sum]
 
 def isGameOver(board):
-    global RedTurnCount
-    if RedTurnCount < 2: 
+    global turnCount
+    if turnCount < 2: 
             return False
 
     return sumOfPlayer_and_Power(PlayerColor.RED, board)[0] == 0 or sumOfPlayer_and_Power(PlayerColor.BLUE, board)[0] == 0
