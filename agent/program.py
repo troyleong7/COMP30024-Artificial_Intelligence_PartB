@@ -154,23 +154,27 @@ def availableActions(color: PlayerColor, board: dict):
     #print(availableSpread)
     return availableSpawn + availableSpread
     
-def sumOfPlayerPower(color: PlayerColor, board):
-    sum = 0
+def sumOfPlayer_and_Power(color: PlayerColor, board):
+    power_sum = 0
+    player_sum = 0
     for key in board.keys():
         if(color == board[key][0]):
-            sum += board[key][1]
-    return sum
+            power_sum += board[key][1]
+            player_sum += 1
+    return [player_sum, power_sum]
 
 def isGameOver(board):
     global RedTurnCount
     if RedTurnCount < 2: 
             return False
 
-    return sumOfPlayerPower(PlayerColor.RED, board) == 0 or sumOfPlayerPower(PlayerColor.BLUE, board) == 0
+    return sumOfPlayer_and_Power(PlayerColor.RED, board)[0] == 0 or sumOfPlayer_and_Power(PlayerColor.BLUE, board)[0] == 0
     
 
 def evaluation(board: Board):
-    num = sumOfPlayerPower(team_color, board) - sumOfPlayerPower(enemy_color, board)
+    team_sumInfo = sumOfPlayer_and_Power(team_color, board)
+    enemy_sumInfo = sumOfPlayer_and_Power(enemy_color, board)
+    num = team_sumInfo[1]  - enemy_sumInfo[1] - enemy_sumInfo[0]
 
     # need more function, spread priority > spawn etc..
     
