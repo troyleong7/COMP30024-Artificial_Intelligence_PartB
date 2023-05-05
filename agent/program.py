@@ -149,7 +149,7 @@ def availableActions(color: PlayerColor, board: dict):
     position = HexPos(0,0) #initialize
     
     # appending all position
-    if (sumOfPlayer_and_Power(PlayerColor.RED, board)[0] + sumOfPlayer_and_Power(PlayerColor.BLUE, board)[0]) < 49:
+    if (sumOfPlayer_and_Power(PlayerColor.RED, board)[1] + sumOfPlayer_and_Power(PlayerColor.BLUE, board)[1]) < 49:
         for i in range(7):
             for j in range(7):
                 availableSpawn.append(SpawnAction(HexPos(i,j)))
