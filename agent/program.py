@@ -23,11 +23,12 @@ currentBoard = {}
 team_color = PlayerColor.RED
 enemy_color = PlayerColor.BLUE
 maxDepth = 3
-turnCount = 1
+RedTurnCount: int
+RedTurnCount = 0
 
 class Agent:
 
-    global currentBoard, nextAction, maxDepth, turnCount
+    global currentBoard, nextAction, maxDepth
     
     def __init__(self, color: PlayerColor, **referee: dict):
         """
@@ -44,14 +45,16 @@ class Agent:
         """
         Return the next action to take.
         """
-        global currentBoard
+        global currentBoard, RedTurnCount
+        
         #print(sumOfPlayerPower(PlayerColor.RED, currentBoard._state))
         
         match self._color:
             case PlayerColor.RED:
-                #print("current board sent to minmax: ", currentBoard)
+                RedTurnCount += 1
+                #print("update turn count: ", RedTurnCount)
+                
                 miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
-                #print (availableActions(team_color, currentBoard)) # no problem here
                 return nextAction
             case PlayerColor.BLUE:
                 b = availableActions(PlayerColor.BLUE, currentBoard)
@@ -61,10 +64,9 @@ class Agent:
         """
         Update the agent with the last player's action.
         """
-        global currentBoard, turnCount
+        global currentBoard
         currentBoard = apply_action(currentBoard, action, color)
-        turnCount += 1
-        #print(currentBoard)
+        
         
         match action:
             case SpawnAction(cell):
@@ -78,8 +80,12 @@ class Agent:
 nextAction: Action
 nextAction = SpawnAction(HexPos(0,0))
 def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
-    if(depth == 0 | isGameOver(board)):
+    if(depth == 0):
         return evaluation(board)
+    if(isGameOver(board)):
+        if(isMaxPlayer):
+            return -1000 #avoid game losing move
+        return 1000 #always choose the game winning move
     
     global nextAction, maxDepth
     
@@ -88,8 +94,8 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
         for action in availableActions(team_color, board):
             child_board = apply_action(board, action, team_color)
             eval = miniMax(child_board, depth-1, alpha, beta, False)
-            '''
-            if(depth == maxDepth): #using this to see if there's strange eval value, now has times where spawn has eval = 2
+            
+            '''if(depth == maxDepth): #using this to see if there's strange eval value, now has times where spawn has eval = 2
                 print("action ", action, "has eval = ", eval)'''
             #alpha = max(eval, maxEval)
             if(eval > maxEval):
@@ -97,7 +103,7 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
                  # select action from depth = max - 1 (recursive so the last should be at that level)
                 if(depth == maxDepth):
                     nextAction = action # need check, highly possible be logically incorrect
-                    print("depth is", depth," action of this node is", action, " maxEval is ", maxEval)
+                    print("depth is", depth," action of this node is", action," eval is ",eval, " maxEval is ", maxEval)
                 alpha = eval
                 maxEval = eval
 
@@ -156,15 +162,12 @@ def sumOfPlayerPower(color: PlayerColor, board):
     return sum
 
 def isGameOver(board):
-    global turnCount
-    if turnCount< 2: 
+    global RedTurnCount
+    if RedTurnCount < 2: 
             return False
 
-    return any([
-        #turn_count >= 343, probably no need cuz referee ends game itself
-        sumOfPlayerPower(PlayerColor.RED, board) == 0,
-        sumOfPlayerPower(PlayerColor.BLUE, board) == 0,
-    ])
+    return sumOfPlayerPower(PlayerColor.RED, board) == 0 or sumOfPlayerPower(PlayerColor.BLUE, board) == 0
+    
 
 def evaluation(board: Board):
     num = sumOfPlayerPower(team_color, board) - sumOfPlayerPower(enemy_color, board)
