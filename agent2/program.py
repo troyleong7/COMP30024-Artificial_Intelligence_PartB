@@ -45,8 +45,6 @@ class Agent:
                 team_color = PlayerColor.BLUE
                 enemy_color = PlayerColor.RED
                 print("Testing: I am playing as blue")
-                
-        #print(token_distribution(team_color, {  (5, 6): (PlayerColor.RED, 2), (1, 2): (PlayerColor.RED, 2)}))
 
     def action(self, **referee: dict) -> Action:
         """
@@ -89,9 +87,8 @@ class Agent:
             
 nextAction: Action
 nextAction = SpawnAction(HexPos(0,0))
-usingBool = 1
 def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
-    global nextAction, maxDepth, turnCount, usingBool
+    global nextAction, maxDepth, turnCount
     
     
     if(isGameOver(board, turnCount + maxDepth - depth)):
@@ -107,13 +104,9 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
         for action in availableActions(team_color, board):
             child_board = apply_action(board, action, team_color)
             eval = miniMax(child_board, depth-1, alpha, beta, False)
-            if(turnCount == 13 and usingBool):
-                print(availableActions, board)
-                usingBool = 0
             
             '''if(depth == maxDepth or depth == maxDepth-1): #using this to see if there's strange eval value, now has times where spawn has eval = 2
-                print("depth = ",depth, "action ", action, "has eval = ", eval, " has TD = ", token_distribution(team_color, child_board))'''
-                
+                print("depth = ",depth, "action ", action, "has eval = ", eval)'''
             #print(team_color)
             #alpha = max(eval, maxEval)
             if(eval > maxEval):
@@ -121,7 +114,7 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
                  # select action from depth = max - 1 (recursive so the last should be at that level)
                 if(depth == maxDepth):
                     nextAction = action # need check, highly possible be logically incorrect
-                    print("depth is", depth," action of this node is", action," eval is ",eval, " maxEval is ", maxEval)
+                    #print("depth is", depth," action of this node is", action," eval is ",eval, " maxEval is ", maxEval)
                 alpha = eval
                 maxEval = eval
 
@@ -175,8 +168,7 @@ def availableActions(color: PlayerColor, board: dict):
     #print(availableSpawn)
     #print("Spread:")
     #print(availableSpread)
-
-    return availableSpawn + availableSpread 
+    return availableSpawn + availableSpread
     
 def sumOfPlayer_and_Power(color: PlayerColor, board):
     power_sum = 0
@@ -187,7 +179,7 @@ def sumOfPlayer_and_Power(color: PlayerColor, board):
             player_sum += 1
     return [player_sum, power_sum]
 
-# average?or sum smallest distance of a team token to another
+# average smallest distance of a team token to another
 def token_distribution(color: PlayerColor, board):
     closest_distance_sum = 0
     closest_distance: int
@@ -195,22 +187,19 @@ def token_distribution(color: PlayerColor, board):
     for position1 in board.keys():
         if(color == board[position1][0]):
             # see closest distance to an ally for each team token
-            closest_distance = -1
-            isFirst = 1 #boolean for first assign to closest distance
+            closest_distance = 0
             for position2 in board.keys():
-                if(color == board[position2][0]):
+                if(color == board[position1][0]):
                     distance = findDistance(position1, position2)
                     if(distance == 0):
                         # avoid self to self distance
                         continue
-                    if(distance < closest_distance or closest_distance == -1):
+                    if(distance < closest_distance):
                         closest_distance = distance
                     if(closest_distance == 1):
                         break
-            # could be -1 if there's no ally
-            if(closest_distance != -1):
-                closest_distance_sum += closest_distance
-    return closest_distance_sum#/sumOfPlayer_and_Power(color, board)[0]
+            closest_distance_sum += closest_distance
+    return closest_distance_sum/sumOfPlayer_and_Power(color, board)[0]
     
 
 def isGameOver(board, modified_turnCount):
@@ -224,13 +213,8 @@ def isGameOver(board, modified_turnCount):
 def evaluation(board: Board):
     team_sumInfo = sumOfPlayer_and_Power(team_color, board)
     enemy_sumInfo = sumOfPlayer_and_Power(enemy_color, board)
-    
-    # 0.2*TD because max TD = 4, try to make it under 1 so it will choose eat enemy with power 1 than spawning at distance = 4
-    num = team_sumInfo[1] - 1.4*enemy_sumInfo[1] + 0.2*token_distribution(team_color, board)
-    
-    # doing average because token distribution doesn't scale with token amounts
-    #num = team_sumInfo[1]/team_sumInfo[0]  - 1.4*enemy_sumInfo[1]/enemy_sumInfo[0] + token_distribution(team_color, board)
-
+    num = team_sumInfo[1]  - enemy_sumInfo[1] 
+    # need more function, spread priority > spawn etc..
     
     return num
 
@@ -251,10 +235,7 @@ def spread(originBoard, position, direction):
     for i in range(1,rank+1):
         spreadX = (position[0]+i*direction[0]+7)%7 #plus an additional 7 to make negative positions positive so that -1 -> 6
         spreadY = (position[1]+i*direction[1]+7)%7
-        power = (board.get((spreadX, spreadY),(0,0))[1] + 1)
-        board[(spreadX, spreadY)] = (color, power)
-        if(power == 7):
-            del board[(spreadX, spreadY)]
+        board[(spreadX, spreadY)] = (color, (board.get((spreadX, spreadY),(0,0))[1] + 1))
     del board[position]
 
     return board
