@@ -63,7 +63,7 @@ class Agent:
                 return nextAction
             case PlayerColor.BLUE:
                 turnCount += 1
-                print("update turn count: ", turnCount)
+                #print("update turn count: ", turnCount)
                 
                 miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
                 return nextAction
@@ -90,13 +90,14 @@ nextAction = SpawnAction(HexPos(0,0))
 def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
     global nextAction, maxDepth, turnCount
     
-    if(depth == 0):
-        return evaluation(board)
+    
     if(isGameOver(board, turnCount + maxDepth - depth)):
         if(isMaxPlayer):
             return -1000 #avoid game losing move
         return 1000 #always choose the game winning move
     
+    if(depth == 0):
+        return evaluation(board)
     
     if(isMaxPlayer):
         maxEval = -math.inf
@@ -113,7 +114,7 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
                  # select action from depth = max - 1 (recursive so the last should be at that level)
                 if(depth == maxDepth):
                     nextAction = action # need check, highly possible be logically incorrect
-                    print("depth is", depth," action of this node is", action," eval is ",eval, " maxEval is ", maxEval)
+                    #print("depth is", depth," action of this node is", action," eval is ",eval, " maxEval is ", maxEval)
                 alpha = eval
                 maxEval = eval
 
@@ -189,8 +190,7 @@ def isGameOver(board, modified_turnCount):
 def evaluation(board: Board):
     team_sumInfo = sumOfPlayer_and_Power(team_color, board)
     enemy_sumInfo = sumOfPlayer_and_Power(enemy_color, board)
-    num = team_sumInfo[1]  - enemy_sumInfo[1] - enemy_sumInfo[0]
-
+    num = team_sumInfo[1]  - enemy_sumInfo[1] 
     # need more function, spread priority > spawn etc..
     
     return num
