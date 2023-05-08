@@ -19,7 +19,6 @@ currentBoard = {}
         ... }
 '''
     
-#currentBoard = Board()
 team_color : PlayerColor
 enemy_color : PlayerColor
 maxDepth = 3
@@ -46,28 +45,30 @@ class Agent:
                 enemy_color = PlayerColor.RED
                 print("Testing: I am playing as blue")
                 
-        #print(token_distribution(team_color, {  (5, 6): (PlayerColor.RED, 2), (1, 2): (PlayerColor.RED, 2)}))
-
     def action(self, **referee: dict) -> Action:
         """
         Return the next action to take.
         """
-        global currentBoard, turnCount
-        #print(sumOfPlayerPower(PlayerColor.RED, currentBoard._state))
+        global currentBoard, turnCount, maxDepth
+        eval = evaluation(currentBoard)
         
+        # to stop wasting time when we're just closing the game
+        if(eval>20):
+            depth = 2
+            maxDepth = 2
+        else:
+            depth = 3
+            maxDepth = 3
+            
         match self._color:
             case PlayerColor.RED:
-                
                 turnCount += 1
-                print("update turn count: ", turnCount)
-                
-                miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
+                miniMax(currentBoard, depth, -math.inf, math.inf, True)
                 return nextAction
+            
             case PlayerColor.BLUE:
                 turnCount += 1
-                #print("update turn count: ", turnCount)
-                
-                miniMax(currentBoard, maxDepth, -math.inf, math.inf, True)
+                miniMax(currentBoard, depth, -math.inf, math.inf, True)
                 return nextAction
 
     def turn(self, color: PlayerColor, action: Action, **referee: dict):
@@ -89,14 +90,15 @@ class Agent:
             
 nextAction: Action
 nextAction = SpawnAction(HexPos(0,0))
-usingBool = 1
 def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
-    global nextAction, maxDepth, turnCount, usingBool
+    global nextAction, maxDepth, turnCount, team_color
     
     
     if(isGameOver(board, turnCount + maxDepth - depth)):
         if(isMaxPlayer):
             return -1000 #avoid game losing move
+        if(sumOfPlayer_and_Power(team_color, board)[0]==0):
+            return -1000 # avoid suicide
         return 1000 #always choose the game winning move
     
     if(depth == 0):
@@ -107,21 +109,17 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
         for action in availableActions(team_color, board):
             child_board = apply_action(board, action, team_color)
             eval = miniMax(child_board, depth-1, alpha, beta, False)
-            if(turnCount == 13 and usingBool):
-                print(availableActions, board)
-                usingBool = 0
             
             '''if(depth == maxDepth or depth == maxDepth-1): #using this to see if there's strange eval value, now has times where spawn has eval = 2
                 print("depth = ",depth, "action ", action, "has eval = ", eval, " has TD = ", token_distribution(team_color, child_board))'''
                 
-            #print(team_color)
-            #alpha = max(eval, maxEval)
+
             if(eval > maxEval):
                 
                  # select action from depth = max - 1 (recursive so the last should be at that level)
                 if(depth == maxDepth):
-                    nextAction = action # need check, highly possible be logically incorrect
-                    print("depth is", depth," action of this node is", action," eval is ",eval, " maxEval is ", maxEval)
+                    nextAction = action
+                    #print("depth is", depth," action of this node is", action," eval is ",eval, " maxEval is ", maxEval)
                 alpha = eval
                 maxEval = eval
 
@@ -140,8 +138,6 @@ def miniMax(board: dict[tuple, tuple], depth, alpha, beta, isMaxPlayer):
                 print("depth = ",depth, "action ", action, "has eval = ", eval)'''
             
             if(eval < minEval):
-                #print("depth is", depth," action of this node is", action, " minEval is ", minEval)
-                #nextAction = nextAction # to avoid none value warning
                 beta = eval
                 minEval = eval
                 
@@ -170,11 +166,6 @@ def availableActions(color: PlayerColor, board: dict):
         # remove taken spots from spawn list
         if SpawnAction(position) in availableSpawn:
             availableSpawn.remove(SpawnAction(position)) 
-    
-    #print("Spawn:" )
-    #print(availableSpawn)
-    #print("Spread:")
-    #print(availableSpread)
 
     return availableSpawn + availableSpread 
     
@@ -187,7 +178,7 @@ def sumOfPlayer_and_Power(color: PlayerColor, board):
             player_sum += 1
     return [player_sum, power_sum]
 
-# average?or sum smallest distance of a team token to another
+# sum of smallest distance of a team token to another
 def token_distribution(color: PlayerColor, board):
     closest_distance_sum = 0
     closest_distance: int
@@ -210,14 +201,13 @@ def token_distribution(color: PlayerColor, board):
             # could be -1 if there's no ally
             if(closest_distance != -1):
                 closest_distance_sum += closest_distance
-    return closest_distance_sum#/sumOfPlayer_and_Power(color, board)[0]
+    return closest_distance_sum
     
 
 def isGameOver(board, modified_turnCount):
+    # not game over when it's the first two turns
     if modified_turnCount < 2: 
             return False
-    #doesnt check turn count, for efficiency reason
-
     return sumOfPlayer_and_Power(PlayerColor.RED, board)[0] == 0 or sumOfPlayer_and_Power(PlayerColor.BLUE, board)[0] == 0
     
 
@@ -226,12 +216,12 @@ def evaluation(board: Board):
     enemy_sumInfo = sumOfPlayer_and_Power(enemy_color, board)
     
     # 0.2*TD because max TD = 4, try to make it under 1 so it will choose eat enemy with power 1 than spawning at distance = 4
-    num = team_sumInfo[1] - 1.4*enemy_sumInfo[1] + 0.2*token_distribution(team_color, board)
-    
-    # doing average because token distribution doesn't scale with token amounts
-    #num = team_sumInfo[1]/team_sumInfo[0]  - 1.4*enemy_sumInfo[1]/enemy_sumInfo[0] + token_distribution(team_color, board)
+    global turnCount
+    if(turnCount < 10):
+        num = team_sumInfo[1] - 1.4*enemy_sumInfo[1] - 0.2*token_distribution(team_color, board)
+    else:
+        num = team_sumInfo[1] - 1.4*enemy_sumInfo[1] + 0.2*token_distribution(team_color, board)
 
-    
     return num
 
 def apply_action(board, action, color: PlayerColor):
@@ -243,10 +233,8 @@ def apply_action(board, action, color: PlayerColor):
 
 def spread(originBoard, position, direction):
     board = originBoard.copy()
-    #print(board.keys())
     color = board[position][0]
     rank = board[position][1]
-    #print(color)
 
     for i in range(1,rank+1):
         spreadX = (position[0]+i*direction[0]+7)%7 #plus an additional 7 to make negative positions positive so that -1 -> 6
